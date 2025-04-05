@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #282626;
+      padding: 30px;
+      color: #dfc3c3;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      background-color: #889788;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    button[style*="red"] {
+      background-color: #e53935;
+    }
+
+    button[style*="red"]:hover {
+      background-color: #c62828;
+    }
+
+    .card {
+      background-color: white;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input {
+      padding: 8px;
+      width: 100%;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    hr {
+      margin: 40px 0;
+    }
+
+    #bookings div, #trips div, #searchResult div {
+      background: #eef;
+      padding: 15px;
+      margin-top: 10px;
+      border-left: 5px solid #3f51b5;
+      border-radius: 5px;
+    }
+
+    #searchResult h4 {
+      margin-bottom: 10px;
+    }
+
+    .message {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+
+</head>
+<body>
+  <h2>Welcome Admin</h2>
+<div style="text-align: center;">
+  <button id="showBookingsBtn">Show Bookings</button>
+  <button id="toggleSearchBookingForm">Search Booking</button>
+  <button id="toggleCreateBookingForm">Create Booking</button>
+  <button id="showTripsBtn">Show Trips</button>
+  <button id="toggleCreateTripForm">Create Trip</button>
+  <button id="toggleSearchTripForm">Search Trip</button>
+  <button id="toggleUpdateTripForm">Update Trip</button>
+  <button id="toggleDeleteTripForm">Delete Trip</button>
+</div>
+
+<div id="deleteTripContainer" class="card" style="display: none;">
+    <h3>Delete Trip</h3>
+    <form id="deleteTripForm">
+      <label>Trip ID:</label>
+      <input type="number" id="deleteTripId" required>
+      <button type="submit" style="color: red;">Delete Trip</button>
+    </form>
+    <div id="deleteTripMessage" class="message"></div>
+  </div>
+
+  
+<div id="createBookingContainer" class="card" style="display: none;">
+    <h3>Create Booking</h3>
+    <form id="createBookingForm">
+      <label>Trip ID:</label><br>
+      <input type="number" id="bookingTripId" required><br><br>
+  
+      <label>Bus ID:</label><br>
+      <input type="number" id="bookingBusId" required><br><br>
+  
+      <label>Seat ID:</label><br>
+      <input type="number" id="bookingSeatId" required><br><br>
+  
+      <button type="submit">Book Now</button>
+    </form>
+  
+    <div id="createBookingMessage"></div>
+  </div>
+
+  <div id="updateTripContainer" class="card" style="display: none;">
+    <h3>Update Trip</h3>
+    <form id="updateTripForm">
+      <label>Trip ID:</label>
+      <input type="number" id="updateTripId" required>
+
+      <label>New Start Station:</label>
+      <input type="text" id="updateStartStation" required>
+
+      <label>New End Station:</label>
+      <input type="text" id="updateEndStation" required>
+
+      <label>New Intermediate Stations (comma-separated):</label>
+      <input type="text" id="updateIntermediateStations">
+
+      <button type="submit">Update Trip</button>
+    </form>
+    <div id="updateTripMessage" class="message"></div>
+  </div>
+  <div id="searchBookingContainer" class="card" style="display: none;">
+    <h3>Search Booking by ID</h3>
+    <form id="searchBookingForm">
+      <label>Booking ID:</label>
+      <input type="number" id="bookingId" required>
+      <button type="submit">Search</button>
+    </form>
+    <div id="searchBookingResult"></div>
+  </div>
+
+  <div id="createTripContainer" class="card" style="display: none;">
+    <h3>Create New Trip</h3>
+    <form id="createTripForm">
+      <label>Start Station:</label>
+      <input type="text" id="startStation" required>
+
+      <label>End Station:</label>
+      <input type="text" id="endStation" required>
+
+      <label>Intermediate Stations (comma-separated):</label>
+      <input type="text" id="intermediateStations">
+
+      <button type="submit">Create Trip</button>
+    </form>
+    <div id="createTripMessage" class="message"></div>
+  </div>
+
+  <!-- Search Trip Form (hidden by default) -->
+  <div id="searchTripContainer" class="card" style="display: none;">
+    <h3>Search Trip by ID</h3>
+    <form id="searchTripForm">
+      <label>Trip ID:</label>
+      <input type="number" id="tripId" required>
+      <button type="submit">Search</button>
+    </form>
+    <div id="searchResult"></div>
+  </div>
+
+
+  <hr>
+  <div id="bookings"></div>
+  <div id="trips"></div>
+
+  <script>
+    function hideAllForms() {
+  document.getElementById('createTripContainer').style.display = 'none';
+  document.getElementById('searchTripContainer').style.display = 'none';
+  document.getElementById('updateTripContainer').style.display = 'none';
+  document.getElementById('deleteTripContainer').style.display = 'none';
+}
+
+
+
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      alert("You are not logged in!");
+      window.location.href = "login.html";
+    }
+
+    // Show Bookings
+    document.getElementById('showBookingsBtn').addEventListener('click', async () => {
+        hideAllForms();
+        try {
+        const response = await fetch('http://127.0.0.1:8000/api/admin/bookings', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const container = document.getElementById('bookings');
+          container.innerHTML = "<h3>Bookings:</h3>";
+
+          data.bookings.forEach(booking => {
+            const div = document.createElement('div');
+            div.style.border = "1px solid #000";
+            div.style.margin = "10px";
+            div.style.padding = "10px";
+
+            div.innerHTML = `
+              <strong>Booking ID:</strong> ${booking.id}<br>
+              <strong>Bus:</strong> ${booking.bus.bus_number}<br>
+              <strong>Seat Number:</strong> ${booking.seat.seat_number}<br>
+              <strong>From:</strong> ${booking.trip.start_station.name}<br>
+              <strong>To:</strong> ${booking.trip.end_station.name}<br>
+              <strong>Created At:</strong> ${booking.created_at}
+            `;
+
+            container.appendChild(div);
+          });
+
+        } else {
+          alert(data.message || 'Failed to fetch bookings');
+        }
+
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Something went wrong while fetching bookings');
+      }
+    });
+
+
+    document.getElementById('showTripsBtn').addEventListener('click', async () => {
+        hideAllForms();
+        try {
+        const response = await fetch('http://127.0.0.1:8000/api/admin/trips', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const container = document.getElementById('trips');
+          container.innerHTML = "<h3>Trips:</h3>";
+
+          data.trips.forEach(trip => {
+            const div = document.createElement('div');
+            div.style.border = "1px solid green";
+            div.style.margin = "10px";
+            div.style.padding = "10px";
+
+            const intermediates = trip.intermediate_station.map(station => station.name).join(" → ");
+
+            div.innerHTML = `
+              <strong>Trip ID:</strong> ${trip.id}<br>
+              <strong>From:</strong> ${trip.start_station.name}<br>
+              <strong>To:</strong> ${trip.end_station.name}<br>
+              <strong>Intermediate Stations:</strong> ${intermediates || 'None'}<br>
+              <strong>Created At:</strong> ${trip.created_at}
+            `;
+
+            container.appendChild(div);
+          });
+
+        } else {
+          alert(data.message || 'Failed to fetch trips');
+        }
+
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Something went wrong while fetching trips');
+      }
+    });
+
+    
+    // Toggle Create Trip Form
+    document.getElementById('toggleCreateTripForm').addEventListener('click', () => {
+        hideAllForms();
+        const formContainer = document.getElementById('createTripContainer');
+      formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Toggle Search Trip Form
+    document.getElementById('toggleSearchTripForm').addEventListener('click', () => {
+      const formContainer = document.getElementById('searchTripContainer');
+      formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Create Trip Handler
+    document.getElementById('createTripForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const startStation = document.getElementById('startStation').value.trim();
+      const endStation = document.getElementById('endStation').value.trim();
+      const intermediateInput = document.getElementById('intermediateStations').value.trim();
+
+      const intermediateStations = intermediateInput
+        ? intermediateInput.split(',').map(name => name.trim()).filter(name => name !== "")
+        : [];
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/admin/trips', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            StartStation: startStation,
+            EndStation: endStation,
+            IntermediateStation: intermediateStations
+          })
+        });
+
+        const data = await response.json();
+        const msgDiv = document.getElementById('createTripMessage');
+
+        if (response.ok) {
+          msgDiv.innerHTML = `<p style="color: green;">✅ ${data.Message}</p>`;
+          document.getElementById('createTripForm').reset();
+          document.getElementById('showTripsBtn').click();
+        } else {
+          msgDiv.innerHTML = `<p style="color: red;">❌ ${data.message || 'Error creating trip.'}</p>`;
+        }
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('createTripMessage').innerHTML = `<p style="color: red;">Something went wrong.</p>`;
+      }
+    });
+
+    // Search Trip Handler
+    document.getElementById('searchTripForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const tripId = document.getElementById('tripId').value.trim();
+
+      if (!tripId) {
+        alert('Please enter a Trip ID');
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/admin/trips/${tripId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          }
+        });
+
+        const data = await response.json();
+        const resultDiv = document.getElementById('searchResult');
+
+        if (response.ok) {
+          const trip = data.station;
+          const intermediates = trip.intermediate_station.map(st => st.name).join(' → ');
+
+          resultDiv.innerHTML = `
+            <h4>Trip Found:</h4>
+            <div style="border: 1px solid blue; padding: 10px; margin: 10px 0;">
+              <strong>Trip ID:</strong> ${trip.id}<br>
+              <strong>From:</strong> ${trip.start_station.name}<br>
+              <strong>To:</strong> ${trip.end_station.name}<br>
+              <strong>Intermediate Stations:</strong> ${intermediates || 'None'}<br>
+              <strong>Created At:</strong> ${trip.created_at}
+            </div>
+          `;
+        } else {
+          resultDiv.innerHTML = `<p style="color: red;">❌ ${data.message || 'Trip not found'}</p>`;
+        }
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('searchResult').innerHTML = `<p style="color: red;">Something went wrong.</p>`;
+      }
+    });
+
+    // Toggle Update Trip Form
+document.getElementById('toggleUpdateTripForm').addEventListener('click', () => {
+  const formContainer = document.getElementById('updateTripContainer');
+  formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+});
+
+// Handle Update Trip
+document.getElementById('updateTripForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const tripId = document.getElementById('updateTripId').value.trim();
+  const startStation = document.getElementById('updateStartStation').value.trim();
+  const endStation = document.getElementById('updateEndStation').value.trim();
+  const intermediateInput = document.getElementById('updateIntermediateStations').value.trim();
+
+  const intermediateStations = intermediateInput
+    ? intermediateInput.split(',').map(name => name.trim()).filter(name => name !== "")
+    : [];
+
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/admin/trips/${tripId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        StartStation: startStation,
+        EndStation: endStation,
+        IntermediateStation: intermediateStations
+      })
+    });
+
+    const data = await response.json();
+    const msgDiv = document.getElementById('updateTripMessage');
+
+    if (response.ok) {
+      msgDiv.innerHTML = `<p style="color: green;">✅ ${data.message}</p>`;
+      document.getElementById('updateTripForm').reset();
+      document.getElementById('showTripsBtn').click(); // refresh trips
+    } else {
+      msgDiv.innerHTML = `<p style="color: red;">❌ ${data.message || 'Error updating trip.'}</p>`;
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+    document.getElementById('updateTripMessage').innerHTML = `<p style="color: red;">Something went wrong.</p>`;
+  }
+});
+
+// Toggle Delete Trip Form
+document.getElementById('toggleDeleteTripForm').addEventListener('click', () => {
+  const formContainer = document.getElementById('deleteTripContainer');
+  formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+});
+
+// Handle Delete Trip
+document.getElementById('deleteTripForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const tripId = document.getElementById('deleteTripId').value.trim();
+  const msgDiv = document.getElementById('deleteTripMessage');
+
+  if (!tripId) {
+    msgDiv.innerHTML = `<p style="color: red;">❗ Please enter a Trip ID.</p>`;
+    return;
+  }
+
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/admin/trips/${tripId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      msgDiv.innerHTML = `<p style="color: green;">✅ ${data.message}</p>`;
+      document.getElementById('deleteTripForm').reset();
+      document.getElementById('showTripsBtn').click(); // refresh trips list
+    } else {
+      msgDiv.innerHTML = `<p style="color: red;">❌ ${data.message || 'Failed to delete trip.'}</p>`;
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+    msgDiv.innerHTML = `<p style="color: red;">Something went wrong while deleting the trip.</p>`;
+  }
+});
+
+// Toggle Search Booking Form
+document.getElementById('toggleSearchBookingForm').addEventListener('click', () => {
+  hideAllForms(); // دي الدالة اللي بتقفل باقي الفورمات
+  const formContainer = document.getElementById('searchBookingContainer');
+  formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+});
+
+// Handle Search Booking with GET
+document.getElementById('searchBookingForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const bookingId = document.getElementById('bookingId').value.trim();
+  const resultDiv = document.getElementById('searchBookingResult');
+
+  if (!bookingId) {
+    resultDiv.innerHTML = `<p style="color: red;">❗ Please enter a Booking ID.</p>`;
+    return;
+  }
+
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/admin/bookings/${bookingId}`, {
+      method: 'GET', // ✅ GET بدل POST
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      const intermediates = data.intermediate_stations.join(" → ");
+
+      resultDiv.innerHTML = `
+        <div style="border: 1px solid purple; padding: 15px; margin-top: 10px;">
+          <strong>Trip ID:</strong> ${data.trip}<br>
+          <strong>Bus Number:</strong> ${data.bus_Number}<br>
+          <strong>Seat Number:</strong> ${data.seat}<br>
+          <strong>From:</strong> ${data.trip_from}<br>
+          <strong>To:</strong> ${data.trip_to}<br>
+          <strong>Intermediate Stations:</strong> ${intermediates || 'None'}
+        </div>
+      `;
+    } else {
+      resultDiv.innerHTML = `<p style="color: red;">❌ ${data.message || 'Booking not found'}</p>`;
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+    resultDiv.innerHTML = `<p style="color: red;">Something went wrong.</p>`;
+  }
+});
+
+// Toggle Create Booking Form
+document.getElementById('toggleCreateBookingForm').addEventListener('click', () => {
+  hideAllForms();
+  const formContainer = document.getElementById('createBookingContainer');
+  formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+});
+
+// Handle Create Booking
+document.getElementById('createBookingForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const tripId = document.getElementById('bookingTripId').value.trim();
+  const busId = document.getElementById('bookingBusId').value.trim();
+  const seatId = document.getElementById('bookingSeatId').value.trim();
+  const msgDiv = document.getElementById('createBookingMessage');
+
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/admin/bookings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        trip_id: tripId,
+        bus_id: busId,
+        seat_id: seatId
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      const intermediates = data.intermediate_stations.join(" → ");
+      msgDiv.innerHTML = `
+        <p style="color: green;">✅ ${data.message}</p>
+        <div style="border: 1px solid #555; padding: 10px; margin-top: 10px;">
+          <strong>User:</strong> ${data.user_name} (ID: ${data.user_id})<br>
+          <strong>Trip:</strong> ${data.trip} → ${data.trip_from} → ${data.trip_to}<br>
+          <strong>Seat:</strong> ${data.seat}<br>
+          <strong>Bus Number:</strong> ${data.bus_Number}<br>
+          <strong>Intermediate:</strong> ${intermediates || 'None'}
+        </div>
+      `;
+      document.getElementById('createBookingForm').reset();
+    } else {
+      msgDiv.innerHTML = `<p style="color: red;">❌ ${data.message || 'Failed to create booking.'}</p>`;
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+    msgDiv.innerHTML = `<p style="color: red;">Something went wrong while creating booking.</p>`;
+  }
+});
+
+
+  </script>
+</body>
+</html>
